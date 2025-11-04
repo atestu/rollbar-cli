@@ -90,6 +90,27 @@ class RollbarAPI {
     }
     return resp.data;
   }
+
+  async getItem(counter) {
+    output.verbose('', 'Fetching item with counter: ' + counter);
+    const resp = await this.axios.get('/item/' + counter);
+    return this.processItemResponse(resp);
+  }
+
+  async listItems(params) {
+    output.verbose('', 'Listing items with params:', params);
+    const resp = await this.axios.get('/items/', { params });
+    return this.processItemResponse(resp);
+  }
+
+  processItemResponse(resp) {
+    output.verbose('', 'response:', resp.data, resp.status, resp.statusText);
+    if (resp.status === 200) {
+      return resp.data;
+    }
+    // Return error data for non-200 responses
+    return { error: true, data: resp.data, status: resp.status, statusText: resp.statusText };
+  }
 }
 
 module.exports = RollbarAPI;
