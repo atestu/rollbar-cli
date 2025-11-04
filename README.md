@@ -1,7 +1,9 @@
-# rollbar-cli
+# rollbar-cli (Extended Fork)
+
+> **Note**: This is a fork of the [official Rollbar CLI](https://github.com/rollbar/rollbar-cli) with additional error lookup and querying capabilities.
 
 The Rollbar CLI provides easy command line access to Rollbar's API features,
-starting with source map uploads and notifying deploys.
+including source map uploads, deploy notifications, and **error querying** (new in this fork).
 
 ![build](https://github.com/rollbar/rollbar-cli/workflows/Node.js%20CI/badge.svg)
 
@@ -11,8 +13,28 @@ starting with source map uploads and notifying deploys.
 npm install -g rollbar-cli
 ```
 
+## What's New in This Fork
+
+### 🆕 Error Lookup Commands
+This fork adds powerful error querying capabilities, allowing you to search and analyze Rollbar errors directly from the command line:
+
+- **`errors get`** - Get detailed information about a specific error
+- **`errors list`** - List recent errors with filtering options
+- **`errors by-person`** - Find errors assigned to a specific person
+- **`errors by-date`** - Search errors within a date range
+
+All error commands support:
+- 🔐 **Environment variable support** (`ROLLBAR_ACCESS_TOKEN`)
+- 🎨 **Dual output modes** (formatted text or JSON with `--json`)
+- 🔍 **Advanced filtering** (by environment, framework, limit)
+- 🌈 **Color-coded output** (errors in red, warnings in yellow)
+
+[Jump to error commands documentation ↓](#error-commands-new)
+
+---
+
 ## Usage and Reference
-Currently upload-sourcemaps and notify-deploy commands are supported.
+This CLI supports three main command groups: **error querying** (new), **source map uploads**, and **deploy notifications**.
 
 ### upload-sourcemaps
 Upload source maps recursively from a directory.
@@ -104,15 +126,161 @@ Output on success:
          Deploy successful
 ```
 
+### Error Commands (NEW)
+
+Query and search Rollbar errors directly from the command line.
+
+#### Setup: Environment Variable (Recommended)
+
+Instead of passing `--access-token` with every command, set the environment variable once:
+
+```bash
+export ROLLBAR_ACCESS_TOKEN="your_rollbar_token_here"
+```
+
+Add this to your `~/.zshrc` or `~/.bashrc` to make it permanent.
+
+#### errors get
+
+Get detailed information about a specific error by its item counter.
+
+```bash
+rollbar-cli errors get <counter> [options]
+
+Options:
+  --access-token  Access token (or set ROLLBAR_ACCESS_TOKEN env var)  [string]
+  --json          Output as JSON                    [boolean] [default: false]
+```
+
+Example:
+```bash
+rollbar-cli errors get 12345
+```
+
+#### errors list
+
+List recent errors with optional filtering.
+
+```bash
+rollbar-cli errors list [options]
+
+Options:
+  --access-token  Access token (or set ROLLBAR_ACCESS_TOKEN env var)  [string]
+  --environment   Filter by environment        [string] [default: "production"]
+  --framework     Filter by framework (ruby, rails, javascript)       [string]
+  --limit         Number of items to retrieve       [number] [default: 25]
+  --json          Output as JSON                    [boolean] [default: false]
+```
+
+Examples:
+```bash
+# List recent production errors
+rollbar-cli errors list
+
+# List errors in staging environment
+rollbar-cli errors list --environment staging
+
+# List JavaScript errors only
+rollbar-cli errors list --framework javascript
+
+# Get 50 Ruby errors in production
+rollbar-cli errors list --framework ruby --limit 50
+
+# Get JSON output for piping to jq
+rollbar-cli errors list --json | jq '.[] | {title, level}'
+```
+
+#### errors by-person
+
+List errors assigned to a specific person.
+
+```bash
+rollbar-cli errors by-person <person-id> [options]
+
+Options:
+  --access-token  Access token (or set ROLLBAR_ACCESS_TOKEN env var)  [string]
+  --environment   Filter by environment        [string] [default: "production"]
+  --framework     Filter by framework (ruby, rails, javascript)       [string]
+  --limit         Number of items to retrieve       [number] [default: 25]
+  --json          Output as JSON                    [boolean] [default: false]
+```
+
+Example:
+```bash
+rollbar-cli errors by-person 67890 --environment production
+```
+
+#### errors by-date
+
+Search errors within a specific date range.
+
+```bash
+rollbar-cli errors by-date <start> <end> [options]
+
+Positionals:
+  start  Start date (ISO 8601 format, e.g., 2024-01-15)   [string] [required]
+  end    End date (ISO 8601 format, e.g., 2024-01-31)     [string] [required]
+
+Options:
+  --access-token  Access token (or set ROLLBAR_ACCESS_TOKEN env var)  [string]
+  --environment   Filter by environment        [string] [default: "production"]
+  --framework     Filter by framework (ruby, rails, javascript)       [string]
+  --limit         Number of items to retrieve       [number] [default: 25]
+  --json          Output as JSON                    [boolean] [default: false]
+```
+
+Examples:
+```bash
+# Search errors in January 2024
+rollbar-cli errors by-date 2024-01-01 2024-01-31
+
+# Search with specific time
+rollbar-cli errors by-date 2024-01-15T10:00:00Z 2024-01-15T18:00:00Z
+
+# Search Ruby errors in staging during a specific week
+rollbar-cli errors by-date 2024-01-15 2024-01-21 \
+  --environment staging \
+  --framework ruby
+```
+
+#### Output Formats
+
+**Formatted Text (default):**
+```
+Found 3 items:
+
+Counter    Level      Title                                              Count    Last Seen
+--------------------------------------------------------------------------------------------
+12345      ERROR      Undefined method 'foo' on nil:NilClass            42       2024-01-15 10:30:00 UTC
+12346      WARN       Deprecated API usage                              15       2024-01-15 09:15:00 UTC
+12347      ERROR      Database connection timeout                       8        2024-01-14 18:45:00 UTC
+```
+
+**JSON (with --json flag):**
+```json
+[
+  {
+    "id": 12345,
+    "counter": 12345,
+    "title": "Undefined method 'foo' on nil:NilClass",
+    "level": "error",
+    "total_occurrences": 42,
+    "last_occurrence_timestamp": 1705315800
+  }
+]
+```
+
 ## Release History & Changelog
 
 See our [Releases](https://github.com/rollbar/rollbar-cli/releases) page for a list of all releases, including changes.
 
 ## Help / Support
 
-If you run into any issues, please email us at [support@rollbar.com](mailto:support@rollbar.com).
+### For Fork-Specific Features (error commands)
+For issues or questions about the error lookup commands added in this fork, please [open an issue on this fork's GitHub](https://github.com/atestu/rollbar-cli/issues/new).
 
-For bug reports, please [open an issue on GitHub](https://github.com/rollbar/rollbar-cli/issues/new).
+### For Original Features (sourcemaps, deploys)
+For issues with the original Rollbar CLI features, please refer to the [official Rollbar CLI repository](https://github.com/rollbar/rollbar-cli) or email [support@rollbar.com](mailto:support@rollbar.com).
 
 ## Developing
 
